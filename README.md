@@ -1,7 +1,5 @@
 # Quick Start
 
-## For macOS
-
 First, git clone the repository:
 ```bash
 git git@github.com:JinZhou5042/whisper-audio-streaming.git
