@@ -6,7 +6,6 @@ project(whisper_streaming
 add_definitions(-DPROJECT_ROOT="${CMAKE_SOURCE_DIR}")
 add_definitions(-DWHISPER_MODEL_PATH="${CMAKE_SOURCE_DIR}/third_party/whisper.cpp/models")
 
-# Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -27,6 +26,9 @@ FetchContent_MakeAvailable(json)
 
 # Add whisper.cpp as subdirectory
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/whisper.cpp ${CMAKE_BINARY_DIR}/whisper)
+
+# Set the install prefix to the current directory's bin folder
+set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/bin" CACHE PATH "Install path" FORCE)
 
 # Add src directory
 add_subdirectory(src)

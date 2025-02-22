@@ -14,6 +14,12 @@ message(STATUS "Found source files: ${SOURCES}")
 # Create executable
 add_executable(stream ${SOURCES})
 
+# Set rpath to find the whisper library
+set_target_properties(stream PROPERTIES
+    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib"
+    BUILD_WITH_INSTALL_RPATH TRUE
+)
+
 # Include directories
 target_include_directories(stream PRIVATE
     ${SDL2_INCLUDE_DIRS}
@@ -34,5 +40,5 @@ target_link_libraries(stream PRIVATE
 
 # Install target
 install(TARGETS stream
-    RUNTIME DESTINATION bin
+    RUNTIME DESTINATION .
 )
