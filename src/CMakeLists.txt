@@ -24,17 +24,16 @@ set_target_properties(stream PROPERTIES
 target_include_directories(stream PRIVATE
     ${SDL2_INCLUDE_DIRS}
     ${CURL_INCLUDE_DIRS}
-    /opt/homebrew/include
     ${CMAKE_SOURCE_DIR}/submodules/whisper.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Link libraries
+
 target_link_libraries(stream PRIVATE
     whisper
     ${SDL2_LIBRARIES}
     ${CURL_LIBRARIES}
-    /opt/homebrew/lib/libfftw3f.3.dylib
     nlohmann_json::nlohmann_json
 )
 

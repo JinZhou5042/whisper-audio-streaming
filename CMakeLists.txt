@@ -16,6 +16,12 @@ if(APPLE)
     link_directories(/opt/homebrew/lib)
 endif()
 
+# For Linux
+if(UNIX)
+    include_directories(/usr/include)
+    link_directories(/usr/lib)
+endif()
+
 # Add nlohmann/json
 include(FetchContent)
 FetchContent_Declare(json
