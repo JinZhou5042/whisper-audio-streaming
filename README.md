@@ -2,7 +2,7 @@
 
 First, git clone the repository:
 ```bash
-git git@github.com:JinZhou5042/whisper-audio-streaming.git
+git https://github.com/JinZhou5042/whisper-audio-streaming.git
 cd whisper-audio-streaming
 ```
 
