@@ -1,6 +1,6 @@
-### Quick Start
+# Quick Start
 
-# For macOS
+## For macOS
 
 First, git clone the repository:
 ```bash
