@@ -151,16 +151,19 @@ int main(int argc, char ** argv) {
             */
 
             double time_now = getCurrentTimestamp();
-            char last_char = audio_text.back();
-            if ((time_now - time_start > 15.0) && (last_char == '.' || last_char == '?' || last_char == '!')) {
-                temp_file << audio_text << "\n" << std::flush;
+            if (!audio_text.empty()) {
+                printf("audio_text: %s\n", audio_text.c_str());
+                char last_char = audio_text.back();
+                if ((time_now - time_start > 15.0) && (last_char == '.' || last_char == '?' || last_char == '!')) {
+                    temp_file << audio_text << "\n" << std::flush;
 
-                translate_text(params.translate, audio_text, translated_text);
+                    translate_text(params.translate, audio_text, translated_text);
 
-                temp_file << translated_text << "\n\n" << std::flush;
-                audio_manager.resetBuffer();
-                time_start = time_now;
-            }   
+                    temp_file << translated_text << "\n\n" << std::flush;
+                    audio_manager.resetBuffer();
+                    time_start = time_now;
+                }
+            }
         }
     }
     audio_manager.stop();
