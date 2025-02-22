@@ -1,12 +1,17 @@
 # Quick Start
 
-First, git clone the repository:
+This repository depends on the whisper.cpp project, any guidance about the project can be found [here](https://github.com/ggerganov/whisper.cpp). First, git clone the repository with submodules:
 ```bash
-git https://github.com/JinZhou5042/whisper-audio-streaming.git
+git clone --recursive https://github.com/JinZhou5042/whisper-audio-streaming.git
 cd whisper-audio-streaming
 ```
 
-This repository depends on the whisper.cpp project, any guidance about the project can be found [here](https://github.com/ggerganov/whisper.cpp). Before building the project, go to the whisper.cpp directory, download the model needed and compile the project:
+If you have already cloned the repository without submodules, you can initialize and update the submodules by running:
+```bash
+git submodule update --init --recursive
+```
+
+Before building the project, go to the whisper.cpp directory, download the model needed and compile the project:
 ```bash
 cd third_party/whisper.cpp
 
@@ -44,3 +49,11 @@ Then, run the program:
 ./bin/stream
 ```
 
+## Configuration
+
+Before running the application, you need to set your Google Translate API key:
+
+For macOS/Linux:
+```bash
+export GOOGLE_TRANSLATE_API_KEY="your-api-key-here"
+```

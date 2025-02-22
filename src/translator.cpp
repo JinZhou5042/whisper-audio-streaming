@@ -2,6 +2,7 @@
 #include <iostream>
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
+#include <cstdlib>
 
 using json = nlohmann::json;
 
@@ -17,8 +18,14 @@ bool translate_text(const std::string& target, const std::string& english_text, 
         return false;
     }
 
+    const char* api_key = std::getenv("GOOGLE_TRANSLATE_API_KEY");
+    if (!api_key) {
+        std::cerr << "Error: GOOGLE_TRANSLATE_API_KEY environment variable not set" << std::endl;
+        return false;
+    }
+
     const std::string apiUrl = "https://translation.googleapis.com/language/translate/v2";
-    const std::string apiKey = "AIzaSyDdJegq9f-lUV31xq9yTgm6D90X8Ht6u4g";
+    const std::string apiKey = api_key;
 
     json requestBody = {
         {"q", english_text},
