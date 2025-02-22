@@ -21,17 +21,14 @@ private:
 public:
     float context_duration_s = 100.0f;
     float archive_interval_s = 20.0f;
-    float recognition_interval_s = 0.4;
+    float recognition_interval_s = 0.4f;
 
     bool save_audio = false;
     bool save_sync = false;
     bool use_gpu = false;
     bool flash_attn = false;
 
-    std::string model = "models/ggml-base.en.bin";
-    // std::string model = "models/ggml-medium.bin";
-    // std::string model = "models/models/ggml-base.en-q4_0.bin";
-    // std::string model = "models/models/ggml-base.en-q2_k.bin";
+    std::string model = std::string(WHISPER_MODEL_PATH) + "/ggml-base.en.bin";
     std::string translate = "";
 
     Params() {

@@ -3,6 +3,9 @@ project(whisper_streaming
     VERSION 1.0
     LANGUAGES C CXX)
 
+add_definitions(-DPROJECT_ROOT="${CMAKE_SOURCE_DIR}")
+add_definitions(-DWHISPER_MODEL_PATH="${CMAKE_SOURCE_DIR}/third_party/whisper.cpp/models")
+
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
