@@ -1,26 +1,48 @@
-### Options
+### Quick Start
 
-- `-ri`, `--recognition-interval`: Interval between recognitions in seconds.
-- `-ai`, `--archive-interval`: Duration of the audio archive in seconds.
-- `--save-audio`: Save audio to file.
-- `--save-sync`: Save audio and subtitles in sync.
-- `--use-gpu`: Use GPU for computation.
-- `--flash-attn`: Use flash attention.
-- `-m`, `--model`: Path to the model file.
-- `-tr`, `--translate`: Translate to the target language.
+# For macOS
 
-## Configuration
+First, git clone the repository:
+```bash
+git git@github.com:JinZhou5042/whisper-audio-streaming.git
+cd whisper-audio-streaming
+```
 
-If there are any configuration files or environment variables, explain how to set them up.
+This repository depends on the whisper.cpp project, any guidance about the project can be found [here](https://github.com/ggerganov/whisper.cpp). Before building the project, go to the whisper.cpp directory, download the model needed and compile the project:
+```bash
+cd third_party/whisper.cpp
 
-## Contributing
+# download the model
+sh ./models/download-ggml-model.sh base.en
+# build the project
+cmake -B build
+cmake --build build --config Release
+# transcribe an audio file, there should be some output in the console
+./build/bin/whisper-cli -f samples/jfk.wav
+```
 
-If you welcome contributions, explain how others can contribute to your project.
+Then, install various dependencies on your specific platform.
 
-## License
+For macOS:
+```bash
+brew install sdl2 curl fftw
+```
 
-Specify the license under which the project is distributed.
+For Ubuntu:
+```bash
+sudo apt-get install libsdl2-dev libcurl4-openssl-dev libfftw3-dev
+```
 
-## Contact
+Then, build the project:
+```bash
+mkdir build
+cd build
+cmake ..
+make -j8
+```
 
-Provide contact information or links to where users can reach you for support or questions.
+Then, run the program:
+```bash
+./bin/stream
+```
+
