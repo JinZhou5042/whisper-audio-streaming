@@ -37,7 +37,10 @@ set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries" FORCE)
 # Enable CoreML backend for Whisper on MacOS, this is a huge performance boost
 if (APPLE)
     set(WHISPER_COREML ON CACHE BOOL "Enable CoreML backend for Whisper" FORCE)
-endif()
+    endif()
+
+# Enable BLAS to speed up
+set(DGGML_BLAS ON CACHE BOOL "Enable BLAS" FORCE)
 
 # Add whisper.cpp as subdirectory
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/whisper.cpp ${CMAKE_BINARY_DIR}/whisper EXCLUDE_FROM_ALL)
