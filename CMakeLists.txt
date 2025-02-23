@@ -30,11 +30,20 @@ FetchContent_Declare(json
 )
 FetchContent_MakeAvailable(json)
 
-# Add whisper.cpp as subdirectory
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/whisper.cpp ${CMAKE_BINARY_DIR}/whisper)
+# Disable whisper installation
+set(WHISPER_INSTALL OFF CACHE BOOL "Disable whisper installation" FORCE)
+set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries" FORCE)
 
-# Set the install prefix to the current directory's bin folder
-set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/bin" CACHE PATH "Install path" FORCE)
+# Enable CoreML backend for Whisper on MacOS, this is a huge performance boost
+if (APPLE)
+    set(WHISPER_COREML ON CACHE BOOL "Enable CoreML backend for Whisper" FORCE)
+endif()
+
+# Add whisper.cpp as subdirectory
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/whisper.cpp ${CMAKE_BINARY_DIR}/whisper EXCLUDE_FROM_ALL)
 
 # Add src directory
 add_subdirectory(src)
+
+# Ensure src executables are also placed in bin/
+set_target_properties(stream PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

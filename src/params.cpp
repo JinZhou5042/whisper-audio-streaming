@@ -21,7 +21,7 @@ private:
 public:
     float context_duration_s = 100.0f;
     float archive_interval_s = 20.0f;
-    float recognition_interval_s = 0.4f;
+    float recognition_interval_s = 0.2f;
 
     bool save_audio = false;
     bool save_sync = false;

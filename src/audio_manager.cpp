@@ -102,11 +102,6 @@ void AudioManager::captureAudio(void* userdata, uint8_t* new_data, int new_data_
 
 
 void AudioManager::resetBuffer() {
-    // if (context_pending_len_ < audio_buffer.size()) {
-        // audio_buffer.resize(context_pending_len_);
-        // std::vector<float>(audio_buffer).swap(audio_buffer);
-    // }
-    // clean the buffer
     audio_buffer.clear();
 }
 

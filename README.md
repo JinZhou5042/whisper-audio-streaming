@@ -1,59 +1,81 @@
 # Quick Start
 
-This repository depends on the whisper.cpp project, any guidance about the project can be found [here](https://github.com/ggerganov/whisper.cpp). First, git clone the repository with submodules:
+This project depends on [whisper.cpp](https://github.com/ggerganov/whisper.cpp.git). Before proceeding, ensure you have cloned the repository with submodules:
+
 ```bash
 git clone --recursive https://github.com/JinZhou5042/whisper-audio-streaming.git
 cd whisper-audio-streaming
 ```
 
-If you have already cloned the repository without submodules, you can initialize and update the submodules by running:
+If you cloned without submodules, initialize them manually:
+
 ```bash
 git submodule update --init --recursive
 ```
 
-Before building the project, go to the whisper.cpp directory, download the model needed and compile the project:
+## 1. Set Up Whisper.cpp
+
+Download & Compile the Model
+
+Navigate to the whisper.cpp directory:
+
 ```bash
 cd third_party/whisper.cpp
+```
 
-# download the model
+For macOS (Recommended)
+
+Use the CoreML backend for a significant performance boost:
+
+```bash
+sh ./models/generate-coreml-model.sh base.en
+```
+
+For Linux
+
+Download the GGML model:
+
+```bash
 sh ./models/download-ggml-model.sh base.en
-# build the project
-cmake -B build
-cmake --build build --config Release
-# transcribe an audio file, there should be some output in the console
-./build/bin/whisper-cli -f samples/jfk.wav
 ```
 
-Then, install various dependencies on your specific platform.
+At this point, whisper.cpp is fully set up.
 
-For macOS:
-```bash
+## 2. Install Dependencies
+
+Before building the project, ensure required libraries are installed:
+
+macOS
+
 brew install sdl2 curl fftw
-```
 
-For Ubuntu:
-```bash
+Ubuntu
+
 sudo apt-get install libsdl2-dev libcurl4-openssl-dev libfftw3-dev
-```
 
-Then, build the project:
+## 3. Build the Project
+
+Return to the main directory and build using CMake:
+
 ```bash
-mkdir build
-cd build
-cmake ..
-make -j8
+cmake -B build
+cd build && make -j4
 ```
 
-Then, run the program:
+## 4. Run the Program
+
+After a successful build, execute:
+
 ```bash
 ./bin/stream
 ```
 
-## Configuration
+## 5. Configuration: Enable Translation
 
-Before running the application, you need to set your Google Translate API key:
+For language translation, set your Google Translate API key:
 
-For macOS/Linux:
 ```bash
 export GOOGLE_TRANSLATE_API_KEY="your-api-key-here"
 ```
+
+Now, your setup is complete! 🚀

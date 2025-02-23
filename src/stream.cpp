@@ -141,7 +141,9 @@ int main(int argc, char ** argv) {
                 audio_text += whisper_full_get_segment_text(ctx, i);
             }
 
-            // std::string clean_text = removeParens(audio_text);
+            std::string clean_text = removeParens(audio_text);
+
+            /* TODO: flash the terminal every time is quite expensive */
             std::cout << "\033[H\033[J" << std::flush;
             std::cout << audio_text << std::flush;
 
@@ -152,7 +154,6 @@ int main(int argc, char ** argv) {
 
             double time_now = getCurrentTimestamp();
             if (!audio_text.empty()) {
-                printf("audio_text: %s\n", audio_text.c_str());
                 char last_char = audio_text.back();
                 if ((time_now - time_start > 15.0) && (last_char == '.' || last_char == '?' || last_char == '!')) {
                     temp_file << audio_text << "\n" << std::flush;
