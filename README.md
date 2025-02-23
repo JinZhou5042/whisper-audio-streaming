@@ -47,11 +47,15 @@ Before building the project, ensure required libraries are installed:
 
 macOS
 
+```bash
 brew install sdl2 curl fftw
+```
 
 Ubuntu
 
+```bash
 sudo apt-get install libsdl2-dev libcurl4-openssl-dev libfftw3-dev
+```
 
 ## 3. Build the Project
 
