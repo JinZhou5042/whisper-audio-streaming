@@ -52,7 +52,7 @@ if (APPLE)
     target_link_libraries(livestreaming PRIVATE ${COREBLUETOOTH_FRAMEWORK})
 endif()
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/simpleble/simpleble ${CMAKE_BINARY_DIR}/simpleble EXCLUDE_FROM_ALL)
-# Add the "-idirafter" option to ensure that the build directory's "simpleble" folder 
+# ddd the "-idirafter" option to ensure that the build directory's "simpleble" folder 
 # is searched for headers only after system headers. This prevents conflicts with the 
 # standard C++ <version> header, which would otherwise be mistakenly shadowed by the 
 # "VERSION" file in the "simpleble" directory.
