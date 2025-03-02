@@ -12,18 +12,13 @@ file(GLOB SOURCES
 message(STATUS "SOURCES found: ${SOURCES}")
 message(STATUS "Runtime output directory: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
-add_executable(stream ${SOURCES})
+add_executable(livestreaming ${SOURCES})
 
 # Link libraries
-target_link_libraries(stream PRIVATE
+target_link_libraries(livestreaming PRIVATE
     ${SDL2_LIBRARIES}
     ${CURL_LIBRARIES}
     nlohmann_json::nlohmann_json
     whisper
+    simpleble::simpleble
 )
-
-if (BUILD_BLUETOOTH)
-    target_link_libraries(stream PRIVATE
-        simpleble::simpleble
-    )
-endif()

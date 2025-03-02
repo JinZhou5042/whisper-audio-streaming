@@ -40,14 +40,22 @@ if (APPLE)
 # enable BLAS to speed up
 set(DGGML_BLAS ON CACHE BOOL "Enable BLAS" FORCE)
 
+# the source code
+add_subdirectory(src)
+
 # submodules
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/whisper.cpp ${CMAKE_BINARY_DIR}/whisper EXCLUDE_FROM_ALL)
 
-# add bluetooth support
-if (BUILD_BLUETOOTH)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/simpleble/simpleble ${CMAKE_BINARY_DIR}/simpleble EXCLUDE_FROM_ALL)
+# bluetooth support
+if (APPLE)
+    find_library(COREBLUETOOTH_FRAMEWORK CoreBluetooth)
+    target_link_libraries(livestreaming PRIVATE ${COREBLUETOOTH_FRAMEWORK})
 endif()
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/simpleble/simpleble ${CMAKE_BINARY_DIR}/simpleble EXCLUDE_FROM_ALL)
+# Add the "-idirafter" option to ensure that the build directory's "simpleble" folder 
+# is searched for headers only after system headers. This prevents conflicts with the 
+# standard C++ <version> header, which would otherwise be mistakenly shadowed by the 
+# "VERSION" file in the "simpleble" directory.
+target_compile_options(simpleble PRIVATE "-idirafter" "${CMAKE_BINARY_DIR}/simpleble")
 
-add_subdirectory(src)
-
-set_target_properties(stream PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set_target_properties(livestreaming PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
