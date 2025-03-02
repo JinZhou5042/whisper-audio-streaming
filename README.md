@@ -23,20 +23,22 @@ Navigate to the whisper.cpp directory:
 cd third_party/whisper.cpp
 ```
 
-For macOS (Recommended)
-
-Use the CoreML backend for a significant performance boost:
-
-```bash
-sh ./models/generate-coreml-model.sh base.en
-```
-
-For Linux
-
-Download the GGML model:
+For Linux, download the GGML model:
 
 ```bash
 sh ./models/download-ggml-model.sh base.en
+```
+
+
+For macOS (Recommended), use the CoreML backend for a significant performance boost:
+
+```bash
+pip install ane_transformers
+pip install openai-whisper
+pip install coremltools
+
+sh ./models/download-ggml-model.sh base.en
+sh ./models/generate-coreml-model.sh base.en
 ```
 
 At this point, whisper.cpp is fully set up.

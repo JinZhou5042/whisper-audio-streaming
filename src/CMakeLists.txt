@@ -16,8 +16,14 @@ add_executable(stream ${SOURCES})
 
 # Link libraries
 target_link_libraries(stream PRIVATE
-    whisper
     ${SDL2_LIBRARIES}
     ${CURL_LIBRARIES}
     nlohmann_json::nlohmann_json
+    whisper
 )
+
+if (BUILD_BLUETOOTH)
+    target_link_libraries(stream PRIVATE
+        simpleble::simpleble
+    )
+endif()

@@ -10,19 +10,17 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Add Homebrew paths for macOS
 if(APPLE)
     include_directories(/opt/homebrew/include)
     link_directories(/opt/homebrew/lib)
 endif()
 
-# For Linux
 if(UNIX)
     include_directories(/usr/include)
     link_directories(/usr/lib)
 endif()
 
-# Add nlohmann/json
+# add nlohmann/json
 include(FetchContent)
 FetchContent_Declare(json
     URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
@@ -30,23 +28,26 @@ FetchContent_Declare(json
 )
 FetchContent_MakeAvailable(json)
 
-# Disable whisper installation
+# disable whisper installation
 set(WHISPER_INSTALL OFF CACHE BOOL "Disable whisper installation" FORCE)
 set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries" FORCE)
 
-# Enable CoreML backend for Whisper on MacOS, this is a huge performance boost
+# enable CoreML backend for Whisper on MacOS, this is a huge performance boost
 if (APPLE)
     set(WHISPER_COREML ON CACHE BOOL "Enable CoreML backend for Whisper" FORCE)
     endif()
 
-# Enable BLAS to speed up
+# enable BLAS to speed up
 set(DGGML_BLAS ON CACHE BOOL "Enable BLAS" FORCE)
 
-# Add whisper.cpp as subdirectory
+# submodules
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/whisper.cpp ${CMAKE_BINARY_DIR}/whisper EXCLUDE_FROM_ALL)
 
-# Add src directory
+# add bluetooth support
+if (BUILD_BLUETOOTH)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/simpleble/simpleble ${CMAKE_BINARY_DIR}/simpleble EXCLUDE_FROM_ALL)
+endif()
+
 add_subdirectory(src)
 
-# Ensure src executables are also placed in bin/
 set_target_properties(stream PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
