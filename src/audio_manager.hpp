@@ -1,63 +1,67 @@
-#ifndef AUDIOMANAGER_HPP
-#define AUDIOMANAGER_HPP
+#ifndef AUDIO_MANAGER_HPP
+#define AUDIO_MANAGER_HPP
 
-#include <vector>
-#include <string>
-#include <mutex>
+#include <atomic>
+#include <chrono>
 #include <fstream>
-#include <SDL2/SDL.h>
+#include <iostream>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
+typedef int socklen_t;
+#else
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#define SOCKET int
+#define INVALID_SOCKET -1
+#define SOCKET_ERROR -1
+#endif
 
 class AudioManager {
 public:
-    AudioManager(int sample_rate, float archive_interval_s, float recognition_interval_s);
+    AudioManager(int sample_rate, const std::string &server_ip = "192.168.4.1", int server_port = 5001);
     ~AudioManager();
 
     bool start();
     bool stop();
-    void cleanup();
-
     void resetBuffer();
-
-    void readContext(std::vector<float>& audio_data);
-
-    static void captureAudio(void* userdata, uint8_t* new_data, int new_data_bytes);
-
-    std::vector<float> getArchiveBuffer();
-
-    void archiveAudio(std::vector<float>& audio_data);
-
+    bool waitForAudioSegment(std::vector<float>& audio_context);
     bool pollEvents();
-
-    void wait(std::vector<float>& audio_context);
-
-    std::vector<float> audio_buffer;
+    void cleanup();
+    
+    // New methods for segment handling
+    bool saveAudioSegment(const std::vector<float>& audio_data, int segment_count);
+    bool saveTextOutput(const std::string& text, int segment_count);
 
 private:
-    void writeHeader();
-    void updateHeader();
-
-    size_t context_pending_len_ = 0;
+    void _receive_loop();
+    void writeWavHeader(std::ofstream& file, size_t data_size_bytes);
+    void convertInt16ToFloat(const int16_t* int16_data, size_t sample_count);
 
     int sample_rate_;
-    float recognition_interval_s_;
-
-    std::mutex mutex_;
+    const int segment_duration_seconds_ = 8; // Fixed 8-second segments
     
-    std::vector<float> context_buffer_;
-    float context_duration_s_;
-    size_t context_buffer_write_pos_;
-
-    std::vector<float> archive_buffer_;
-    float archive_interval_s_;
-    size_t archive_buffer_write_pos_;
-
-    int device_id_;
-    bool capturing_;
-
-    std::ofstream wav_file_;
-    std::ofstream subtitles_file_;
-    uint32_t wav_data_chunk_size_;
+    std::mutex mutex_;
+    std::atomic<bool> capturing_{false};
+    std::atomic<size_t> samples_collected_{0};
+    
+    std::vector<float> audio_buffer;
+    
+    // UDP connection
+    std::string server_ip_;
+    int server_port_;
+    SOCKET sock_;
+    std::thread receive_thread_;
+    std::atomic<bool> running_{false};
 };
 
-#endif // AUDIOMANAGER_HPP
+#endif // AUDIO_MANAGER_HPP

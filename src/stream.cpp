@@ -1,9 +1,8 @@
-// Real-time speech recognition of input from a microphone
+// Real-time speech recognition using ESP32 WiFi Microphone
 #include "whisper.h"
 #include "params.cpp"
 #include "audio_manager.hpp"
 #include "translator.hpp"
-// #include "simpleble_test.hpp"
 
 #include <cassert>
 #include <cstdio>
@@ -17,20 +16,9 @@
 #include <iomanip>
 #include <mutex>
 #include <cmath>
-#include <fftw3.h>
 #include <ctime>
 #include <regex>
 #include <csignal>
-
-#include <SDL2/SDL.h>
-
-
-static double getCurrentTimestamp() {
-    auto now = std::chrono::system_clock::now();
-    auto duration = now.time_since_epoch();
-    double timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(duration).count();
-    return timestamp;
-}
 
 static std::string removeParens(const std::string& input) {
     std::string result;
@@ -68,7 +56,6 @@ static std::string removeParens(const std::string& input) {
 
 AudioManager* g_audioManager = nullptr;
 
-
 [[noreturn]] static void handle_sigstp([[maybe_unused]] int signal) {
     if (g_audioManager != nullptr) {
         g_audioManager->cleanup(); 
@@ -77,8 +64,6 @@ AudioManager* g_audioManager = nullptr;
 }
 
 int main(int argc, char ** argv) {
-    // test_simpleble();
-
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
     std::cout.tie(nullptr);
@@ -88,56 +73,69 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
-    struct whisper_context_params cparams = whisper_context_default_params();
+    // Add ESP32 IP parameter
+    std::string esp32_ip = "192.168.4.1"; // Default IP
+    for (int i = 1; i < argc - 1; i++) {
+        if (std::string(argv[i]) == "--esp32-ip" && i + 1 < argc) {
+            esp32_ip = argv[i + 1];
+            break;
+        }
+    }
 
+    struct whisper_context_params cparams = whisper_context_default_params();
     cparams.use_gpu    = params.use_gpu;
     cparams.flash_attn = params.flash_attn;
 
     struct whisper_context * ctx = whisper_init_from_file_with_params(params.model.c_str(), cparams);
     whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
 
-    wparams.n_threads        = 1;            // 1 thread
-    wparams.audio_ctx        = 0;            // recognize immediately
-    wparams.max_tokens       = 0;            // maximum number of tokens to generate
-    wparams.language         = "en";         // only English
-    wparams.print_progress   = false;        // no progress bar
-    wparams.print_special    = false;        // no special tokens
-    wparams.print_realtime   = false;        // we print the output ourselves
-    wparams.no_timestamps    = true;         // no timestamps in the output
-    wparams.single_segment   = true;         // best for real-time
-    wparams.tdrz_enable      = false;        // disable TDRZ
+    wparams.n_threads        = 1;
+    wparams.audio_ctx        = 0;
+    wparams.max_tokens       = 0;
+    wparams.language         = "en";
+    wparams.print_progress   = false;
+    wparams.print_special    = false;
+    wparams.print_realtime   = false;
+    wparams.no_timestamps    = true;
+    wparams.single_segment   = true;
+    wparams.tdrz_enable      = false;
+    wparams.temperature      = 0.0f;
 
-    wparams.temperature = 0.0f;              // prefer deterministic
-
-    printf("[Start speaking]\n");
+    printf("[Connecting to ESP32 microphone at %s]\n", esp32_ip.c_str());
 
     int sample_rate = 16000;
-
-    AudioManager audio_manager(sample_rate, params.archive_interval_s, params.recognition_interval_s);
+    AudioManager audio_manager(sample_rate, esp32_ip);
     g_audioManager = &audio_manager;
     signal(SIGTSTP, handle_sigstp);
 
     std::string translated_text;
 
-    audio_manager.start();
+    if (!audio_manager.start()) {
+        std::cerr << "Failed to connect to ESP32. Make sure it's powered on and WiFi is connected." << std::endl;
+        return 1;
+    }
 
-    double time_start = getCurrentTimestamp();
-
-    std::ofstream temp_file;
-    temp_file.open("temp.txt", std::ios::trunc);
-    // first remove the file if it exists
-
+    printf("[Start speaking - Processing in 8-second segments]\n");
+    
+    int segment_count = 0;
+    
     while (audio_manager.pollEvents()) {
-        std::vector<float> audio_context;
+        std::vector<float> audio_segment;
 
-        audio_manager.wait(audio_context);
-
-        if (!audio_context.empty()) {
-            if (whisper_full(ctx, wparams, audio_context.data(), audio_context.size()) != 0) {
-                std::cerr << "Failed to recognize audio\n";
+        // Wait for 8 seconds of audio to be collected
+        if (audio_manager.waitForAudioSegment(audio_segment)) {
+            // Save audio segment to file
+            audio_manager.saveAudioSegment(audio_segment, segment_count);
+            
+            // Process audio with Whisper
+            if (whisper_full(ctx, wparams, audio_segment.data(), audio_segment.size()) != 0) {
+                std::cerr << "Failed to recognize audio segment " << segment_count << std::endl;
+                segment_count++;
+                audio_manager.resetBuffer();
                 continue;
             }
 
+            // Extract recognized text
             std::string audio_text = "";
             const int n_segments = whisper_full_n_segments(ctx);
             for (int i = 0; i < n_segments; ++i) {
@@ -145,36 +143,27 @@ int main(int argc, char ** argv) {
             }
 
             std::string clean_text = removeParens(audio_text);
-
-            /* TODO: flash the terminal every time is quite expensive */
-            std::cout << "\033[H\033[J" << std::flush;
-            std::cout << audio_text << std::flush;
-
-            /* TODO: currently the text is flashing out of no reason
-            translate_text(params.translate, clean_text, translated_text);
-            std::cout << translated_text << std::flush;
-            */
-
-            double time_now = getCurrentTimestamp();
-            if (!audio_text.empty()) {
-                char last_char = audio_text.back();
-                if ((time_now - time_start > 15.0) && (last_char == '.' || last_char == '?' || last_char == '!')) {
-                    temp_file << audio_text << "\n" << std::flush;
-
-                    translate_text(params.translate, audio_text, translated_text);
-
-                    temp_file << translated_text << "\n\n" << std::flush;
-                    audio_manager.resetBuffer();
-                    time_start = time_now;
-                }
+            
+            // Display recognized text
+            std::cout << "\n=== Segment " << segment_count << " ===\n" << clean_text << std::endl;
+            
+            // Save text to file
+            audio_manager.saveTextOutput(clean_text, segment_count);
+            
+            // Optional: translate the text if enabled
+            if (!params.translate.empty()) {
+                translate_text(params.translate, clean_text, translated_text);
+                std::cout << "Translation: " << translated_text << std::endl;
             }
+            
+            // Reset buffer for next segment
+            audio_manager.resetBuffer();
+            segment_count++;
         }
     }
+
     audio_manager.stop();
-
-    whisper_print_timings(ctx);
     whisper_free(ctx);
-
 
     return 0;
 }
