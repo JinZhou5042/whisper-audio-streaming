@@ -115,7 +115,7 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
-    printf("[Start speaking - Processing in 8-second segments]\n");
+    printf("[Start speaking - Processing in 8-second segments with no gaps]\n");
     
     int segment_count = 0;
     
@@ -131,7 +131,6 @@ int main(int argc, char ** argv) {
             if (whisper_full(ctx, wparams, audio_segment.data(), audio_segment.size()) != 0) {
                 std::cerr << "Failed to recognize audio segment " << segment_count << std::endl;
                 segment_count++;
-                audio_manager.resetBuffer();
                 continue;
             }
 
@@ -156,8 +155,6 @@ int main(int argc, char ** argv) {
                 std::cout << "Translation: " << translated_text << std::endl;
             }
             
-            // Reset buffer for next segment
-            audio_manager.resetBuffer();
             segment_count++;
         }
     }

@@ -1,4 +1,5 @@
 #include "audio_manager.hpp"
+#include <cstring>  // For strlen
 #include <cmath>
 #include <stdexcept>
 
@@ -79,7 +80,6 @@ bool AudioManager::start() {
     
     running_ = true;
     capturing_ = true;
-    samples_collected_ = 0;
     
     // Start receive thread
     receive_thread_ = std::thread(&AudioManager::_receive_loop, this);
@@ -103,17 +103,18 @@ bool AudioManager::stop() {
     return true;
 }
 
-void AudioManager::resetBuffer() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    audio_buffer.clear();
-    samples_collected_ = 0;
-}
-
 bool AudioManager::waitForAudioSegment(std::vector<float>& audio_context) {
-    // Wait until we have collected 8 seconds of audio
+    // Wait until we have collected at least 8 seconds of audio
     size_t required_samples = sample_rate_ * segment_duration_seconds_;
     
-    while (samples_collected_ < required_samples) {
+    while (true) {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (audio_buffer.size() >= required_samples) {
+                break;
+            }
+        }
+        
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         if (!running_) return false;
     }
@@ -121,18 +122,21 @@ bool AudioManager::waitForAudioSegment(std::vector<float>& audio_context) {
     {
         std::lock_guard<std::mutex> lock(mutex_);
         
-        // If we have more than 8 seconds, just take the most recent 8 seconds
-        if (audio_buffer.size() > required_samples) {
-            audio_context.assign(
-                audio_buffer.end() - required_samples,
-                audio_buffer.end()
-            );
-        } else {
-            audio_context = audio_buffer;
-        }
+        // Extract exactly 8 seconds of audio from the front of the buffer
+        audio_context.resize(required_samples);
+        
+        // Copy the first 8 seconds to the output vector
+        std::copy(audio_buffer.begin(), audio_buffer.begin() + required_samples, audio_context.begin());
+        
+        // Remove the processed 8 seconds from the buffer
+        audio_buffer.erase(audio_buffer.begin(), audio_buffer.begin() + required_samples);
+        
+        std::cout << "Extracted 8s segment. Remaining buffer size: " 
+                  << audio_buffer.size() << " samples (" 
+                  << audio_buffer.size() / sample_rate_ << " seconds)" << std::endl;
     }
     
-    return !audio_context.empty();
+    return true;
 }
 
 bool AudioManager::pollEvents() {
@@ -218,15 +222,12 @@ void AudioManager::convertInt16ToFloat(const int16_t* int16_data, size_t sample_
     
     // Reserve space to avoid reallocations
     size_t original_size = audio_buffer.size();
-    audio_buffer.resize(original_size + sample_count);
     
-    // Convert int16 to float [-1.0, 1.0]
+    // Convert int16 to float [-1.0, 1.0] and add to buffer
     for (size_t i = 0; i < sample_count; i++) {
         // Normalize to [-1, 1] range
-        audio_buffer[original_size + i] = int16_data[i] / 32768.0f;
+        audio_buffer.push_back(int16_data[i] / 32768.0f);
     }
-    
-    samples_collected_ += sample_count;
 }
 
 void AudioManager::writeWavHeader(std::ofstream& file, size_t data_size_bytes) {

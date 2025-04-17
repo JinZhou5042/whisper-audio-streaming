@@ -9,6 +9,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <deque>  // Using deque for efficient front removal
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -33,7 +34,6 @@ public:
 
     bool start();
     bool stop();
-    void resetBuffer();
     bool waitForAudioSegment(std::vector<float>& audio_context);
     bool pollEvents();
     void cleanup();
@@ -52,9 +52,9 @@ private:
     
     std::mutex mutex_;
     std::atomic<bool> capturing_{false};
-    std::atomic<size_t> samples_collected_{0};
     
-    std::vector<float> audio_buffer;
+    // Using deque for efficient front removal
+    std::deque<float> audio_buffer;
     
     // UDP connection
     std::string server_ip_;
