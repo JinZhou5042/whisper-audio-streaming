@@ -3,7 +3,7 @@
 #include "params.cpp"
 #include "audio_manager.hpp"
 #include "translator.hpp"
-#include "simpleble_test.hpp"
+// #include "simpleble_test.hpp"
 
 #include <cassert>
 #include <cstdio>
@@ -77,7 +77,7 @@ AudioManager* g_audioManager = nullptr;
 }
 
 int main(int argc, char ** argv) {
-    test_simpleble();
+    // test_simpleble();
 
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);

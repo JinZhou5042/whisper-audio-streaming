@@ -16,5 +16,5 @@ target_link_libraries(livestreaming PRIVATE
     ${CURL_LIBRARIES}
     nlohmann_json::nlohmann_json
     whisper
-    simpleble::simpleble
+    # simpleble::simpleble
 )
