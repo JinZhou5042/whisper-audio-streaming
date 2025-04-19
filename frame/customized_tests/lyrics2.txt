@@ -1,0 +1,8 @@
+22222222222222222222222222hijkb jsdahbvasjhd a
+askdjbxc 
+bsadkc vkjdfahiohijndknx, sadknjxc
+adsnkjxcnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnkjbadx
+Buffering
+The Frame display has 2 buffers. All writing to the display via frame.display.text(), frame.display.bitmap(), etc write to an off-screen buffer and are not visible. This allows you to write multiple actions at once. When you have completed drawing and want to show it to the user, call frame.display.show() which will display the buffered graphics and clear a new off-screen buffer for whatever you want to draw next.
+asckjx zm
+22222222222222222222222222:
