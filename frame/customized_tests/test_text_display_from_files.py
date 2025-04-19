@@ -26,7 +26,7 @@ async def main():
 
                     start_time = time.time()
                     await frame.display.show_text(line, color=PaletteColors.WHITE)
-                    #await frame.display.scroll_text(line,color=PaletteColors.YELLOW)
+                    
                     end_time = time.time()
 
                     delay = end_time - start_time

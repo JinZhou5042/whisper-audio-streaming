@@ -64,3 +64,20 @@ python test_check_battery.py
 ```bash
 python test_text_display_delay.py
 ```
+
+---
+
+### 📁 Test Text Display From Files
+
+```bash
+python test_text_display_from_files.py
+```
+
+---
+
+### 🗃️ Test Text Display From Files (Scrolling mode)
+
+```bash
+python test_text_display_from_files_scrolling.py
+```
+

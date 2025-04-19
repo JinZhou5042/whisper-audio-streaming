@@ -22,6 +22,9 @@ async def main():
                 content = f.read()
                 start_time = time.time()
                 await frame.display.scroll_text(content,color=PaletteColors.YELLOW)
+# display the text slowly
+                #await frame.display.scroll_text(content, lines_per_frame=2, color=PaletteColors.YELLOW)
+
                 end_time = time.time()
                 delay = end_time - start_time
                 print(f"发送: {content}")
