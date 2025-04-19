@@ -3,10 +3,9 @@
 ### 📥 Clone the Repository (with Submodule)
 
 ```bash
-git clone https://github.com/Peiyu-Georgia-Li/esp32s3_audio_streaming.git
-cd esp32s3_audio_streaming
+git clone https://github.com/JinZhou5042/whisper-audio-streaming.git
+cd frame
 git submodule update --init --recursive
-cd main/frame
 ```
 
 
