@@ -1,4 +1,5 @@
 #include "audio_manager.hpp"
+#include "params.cpp"
 #include <cmath>
 #include <cstring> // For strlen
 #include <stdexcept>
@@ -105,9 +106,8 @@ bool AudioManager::stop() {
   return true;
 }
 
-bool AudioManager::waitForAudioSegment(std::vector<float> &audio_context) {
-  // Wait until we have collected at least 8 seconds of audio
-  size_t required_samples = sample_rate_ * segment_duration_seconds_;
+bool AudioManager::waitForAudioSegment(std::vector<float> &audio_context, int segment_duration_s) {
+  size_t required_samples = sample_rate_ * segment_duration_s;
 
   while (true) {
     {

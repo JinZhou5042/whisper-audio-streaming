@@ -35,7 +35,7 @@ public:
 
   bool start();
   bool stop();
-  bool waitForAudioSegment(std::vector<float> &audio_context);
+  bool waitForAudioSegment(std::vector<float> &audio_context, int segment_duration_s);
   bool pollEvents();
   void cleanup();
 
@@ -50,7 +50,7 @@ private:
   void convertInt16ToFloat(const int16_t *int16_data, size_t sample_count);
 
   int sample_rate_;
-  const int segment_duration_seconds_ = 8; // Fixed 8-second segments
+  const int segment_duration_seconds_ = 7; // Fixed 7-second segments
 
   std::mutex mutex_;
   std::atomic<bool> capturing_{false};

@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   whisper_full_params wparams =
       whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
 
-  wparams.n_threads = 1;
+  wparams.n_threads = 3;
   wparams.audio_ctx = 0;
   wparams.max_tokens = 0;
   wparams.language = "en";
@@ -119,15 +119,15 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  printf("[Start speaking - Processing in 8-second segments with no gaps]\n");
+  printf("[Start speaking - Processing in %d-second segments with no gaps]\n", params.segment_duration_s);
 
   int segment_count = 0;
 
   while (audio_manager.pollEvents()) {
     std::vector<float> audio_segment;
 
-    // Wait for 8 seconds of audio to be collected
-    if (audio_manager.waitForAudioSegment(audio_segment)) {
+    // Wait for a few seconds of audio to be collected
+    if (audio_manager.waitForAudioSegment(audio_segment, params.segment_duration_s)) {
       // Save audio segment to file
       audio_manager.saveAudioSegment(audio_segment, segment_count);
 

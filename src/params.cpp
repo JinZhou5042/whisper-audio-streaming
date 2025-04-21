@@ -28,7 +28,10 @@ public:
     bool use_gpu = false;
     bool flash_attn = false;
 
+    int segment_duration_s = 7;
+
     std::string model = std::string(WHISPER_MODEL_PATH) + "/ggml-tiny.en.bin";
+    // std::string model = std::string(WHISPER_MODEL_PATH) + "/ggml-base.en.bin";
     std::string translate = "";
 
     Params() {
