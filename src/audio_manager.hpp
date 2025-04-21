@@ -44,13 +44,14 @@ public:
                         int segment_count);
   bool saveTextOutput(const std::string &text, int segment_count);
 
+  std::string log_directory;
+
 private:
   void _receive_loop();
   void writeWavHeader(std::ofstream &file, size_t data_size_bytes);
   void convertInt16ToFloat(const int16_t *int16_data, size_t sample_count);
 
   int sample_rate_;
-  const int segment_duration_seconds_ = 7; // Fixed 7-second segments
 
   std::mutex mutex_;
   std::atomic<bool> capturing_{false};

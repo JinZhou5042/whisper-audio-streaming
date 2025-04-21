@@ -3,40 +3,37 @@
 #include <cmath>
 #include <cstring> // For strlen
 #include <stdexcept>
+#include <sys/stat.h>
 
 AudioManager::AudioManager(int sample_rate, const std::string &server_ip,
                            int server_port)
     : sample_rate_(sample_rate), server_ip_(server_ip),
       server_port_(server_port) {
 
-// Initialize socket
-#ifdef _WIN32
-  WSADATA wsaData;
-  if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-    throw std::runtime_error("Failed to initialize Winsock");
-  }
-#endif
+    // Create timestamped directory for logs
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+    std::tm *now_tm = std::localtime(&now_time);
+
+    char timestamp[20];
+    std::strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", now_tm);
+    log_directory = "log_" + std::string(timestamp);
+
+    mkdir(log_directory.c_str(), 0777);
+
+    std::cout << "Saving logs to directory: " << log_directory << std::endl;
 
   // Create UDP socket
   sock_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
   if (sock_ == INVALID_SOCKET) {
-#ifdef _WIN32
-    WSACleanup();
-#endif
     throw std::runtime_error("Failed to create socket");
   }
 
-// Set socket timeout
-#ifdef _WIN32
-  DWORD timeout = 1000; // 1 second
-  setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout,
-             sizeof(timeout));
-#else
+  // Set socket timeout
   struct timeval tv;
   tv.tv_sec = 1;
   tv.tv_usec = 0;
   setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
-#endif
 
   std::cout << "AudioManager initialized, ready to connect to ESP32 at "
             << server_ip_ << ":" << server_port_ << std::endl;
@@ -151,7 +148,7 @@ void AudioManager::cleanup() { stop(); }
 bool AudioManager::saveAudioSegment(const std::vector<float> &audio_data,
                                     int segment_count) {
   std::string filename =
-      "audio_input_" + std::to_string(segment_count) + ".wav";
+      log_directory + "/audio_input_" + std::to_string(segment_count) + ".wav";
   std::ofstream wav_file(filename, std::ios::binary);
 
   if (!wav_file.is_open()) {
@@ -173,7 +170,7 @@ bool AudioManager::saveAudioSegment(const std::vector<float> &audio_data,
 
 bool AudioManager::saveTextOutput(const std::string &text, int segment_count) {
   std::string filename =
-      "text_output_" + std::to_string(segment_count) + ".txt";
+      log_directory + "/text_output_" + std::to_string(segment_count) + ".txt";
   std::ofstream text_file(filename);
 
   if (!text_file.is_open()) {
