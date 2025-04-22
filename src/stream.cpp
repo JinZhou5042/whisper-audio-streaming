@@ -1,180 +1,173 @@
-// Real-time speech recognition of input from a microphone
-#include "whisper.h"
-#include "params.cpp"
+// Real-time speech recognition using ESP32 WiFi Microphone
 #include "audio_manager.hpp"
+#include "params.cpp"
 #include "translator.hpp"
-#include "simpleble_test.hpp"
+#include "whisper.h"
 
-#include <cassert>
-#include <cstdio>
-#include <string>
-#include <vector>
-#include <thread>
-#include <fstream>
-#include <chrono>
-#include <iostream>
 #include <algorithm>
-#include <iomanip>
-#include <mutex>
+#include <cassert>
+#include <chrono>
 #include <cmath>
-#include <fftw3.h>
-#include <ctime>
-#include <regex>
 #include <csignal>
+#include <cstdio>
+#include <ctime>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <mutex>
+#include <regex>
+#include <string>
+#include <thread>
+#include <vector>
 
-#include <SDL2/SDL.h>
+static std::string removeParens(const std::string &input) {
+  std::string result;
+  std::string current_token;
+  bool discardRound = false;
+  bool discardSquare = false;
 
-
-static double getCurrentTimestamp() {
-    auto now = std::chrono::system_clock::now();
-    auto duration = now.time_since_epoch();
-    double timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(duration).count();
-    return timestamp;
-}
-
-static std::string removeParens(const std::string& input) {
-    std::string result;
-    std::string current_token;
-    bool discardRound = false;
-    bool discardSquare = false;
-
-    for (char ch : input) {
-        if (ch == '(') {
-            discardRound = true;
-        } else if (ch == ')') {
-            discardRound = false;
-        } else if (ch == '[') {
-            discardSquare = true;
-        } else if (ch == ']') {
-            discardSquare = false;
-        } else if (!discardRound && !discardSquare) {
-            if (ch == ' ') {
-                if (!current_token.empty()) {
-                    result += current_token + " ";
-                    current_token.clear();
-                }
-            } else {
-                current_token += ch;
-            }
+  for (char ch : input) {
+    if (ch == '(') {
+      discardRound = true;
+    } else if (ch == ')') {
+      discardRound = false;
+    } else if (ch == '[') {
+      discardSquare = true;
+    } else if (ch == ']') {
+      discardSquare = false;
+    } else if (!discardRound && !discardSquare) {
+      if (ch == ' ') {
+        if (!current_token.empty()) {
+          result += current_token + " ";
+          current_token.clear();
         }
+      } else {
+        current_token += ch;
+      }
     }
+  }
 
-    if (!current_token.empty()) {
-        result += current_token;
-    }
+  if (!current_token.empty()) {
+    result += current_token;
+  }
 
-    return result;
+  return result;
 }
 
-AudioManager* g_audioManager = nullptr;
-
+AudioManager *g_audioManager = nullptr;
 
 [[noreturn]] static void handle_sigstp([[maybe_unused]] int signal) {
-    if (g_audioManager != nullptr) {
-        g_audioManager->cleanup(); 
-    }
-    exit(0);
+  if (g_audioManager != nullptr) {
+    g_audioManager->cleanup();
+  }
+  exit(0);
 }
 
-int main(int argc, char ** argv) {
-    test_simpleble();
+int main(int argc, char **argv) {
+  std::ios::sync_with_stdio(false);
+  std::cin.tie(nullptr);
+  std::cout.tie(nullptr);
 
-    std::ios::sync_with_stdio(false);
-    std::cin.tie(nullptr);
-    std::cout.tie(nullptr);
+  Params params;
+  if (!params.parse(argc, argv)) {
+    return 1;
+  }
 
-    Params params;
-    if (!params.parse(argc, argv)) {
-        return 1;
+  // Add ESP32 IP parameter
+  std::string esp32_ip = "192.168.4.1"; // Default IP
+  for (int i = 1; i < argc - 1; i++) {
+    if (std::string(argv[i]) == "--esp32-ip" && i + 1 < argc) {
+      esp32_ip = argv[i + 1];
+      break;
     }
+  }
 
-    struct whisper_context_params cparams = whisper_context_default_params();
+  struct whisper_context_params cparams = whisper_context_default_params();
+  cparams.use_gpu = params.use_gpu;
+  cparams.flash_attn = params.flash_attn;
 
-    cparams.use_gpu    = params.use_gpu;
-    cparams.flash_attn = params.flash_attn;
+  struct whisper_context *ctx =
+      whisper_init_from_file_with_params(params.model.c_str(), cparams);
+  whisper_full_params wparams =
+      whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
 
-    struct whisper_context * ctx = whisper_init_from_file_with_params(params.model.c_str(), cparams);
-    whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
+  wparams.n_threads = 3;
+  wparams.audio_ctx = 0;
+  wparams.max_tokens = 0;
+  wparams.language = "en";
+  wparams.print_progress = false;
+  wparams.print_special = false;
+  wparams.print_realtime = false;
+  wparams.no_timestamps = true;
+  wparams.single_segment = true;
+  wparams.tdrz_enable = false;
+  wparams.temperature = 0.0f;
 
-    wparams.n_threads        = 1;            // 1 thread
-    wparams.audio_ctx        = 0;            // recognize immediately
-    wparams.max_tokens       = 0;            // maximum number of tokens to generate
-    wparams.language         = "en";         // only English
-    wparams.print_progress   = false;        // no progress bar
-    wparams.print_special    = false;        // no special tokens
-    wparams.print_realtime   = false;        // we print the output ourselves
-    wparams.no_timestamps    = true;         // no timestamps in the output
-    wparams.single_segment   = true;         // best for real-time
-    wparams.tdrz_enable      = false;        // disable TDRZ
+  printf("[Connecting to ESP32 microphone at %s]\n", esp32_ip.c_str());
 
-    wparams.temperature = 0.0f;              // prefer deterministic
+  int sample_rate = 16000;
+  AudioManager audio_manager(sample_rate, esp32_ip);
+  g_audioManager = &audio_manager;
+  signal(SIGTSTP, handle_sigstp);
 
-    printf("[Start speaking]\n");
+  std::string translated_text;
 
-    int sample_rate = 16000;
+  if (!audio_manager.start()) {
+    std::cerr << "Failed to connect to ESP32. Make sure it's powered on and "
+                 "WiFi is connected."
+              << std::endl;
+    return 1;
+  }
 
-    AudioManager audio_manager(sample_rate, params.archive_interval_s, params.recognition_interval_s);
-    g_audioManager = &audio_manager;
-    signal(SIGTSTP, handle_sigstp);
+  printf("[Start speaking - Processing in %d-second segments with no gaps]\n", params.segment_duration_s);
 
-    std::string translated_text;
+  int segment_count = 0;
 
-    audio_manager.start();
+  while (audio_manager.pollEvents()) {
+    std::vector<float> audio_segment;
 
-    double time_start = getCurrentTimestamp();
+    // Wait for a few seconds of audio to be collected
+    if (audio_manager.waitForAudioSegment(audio_segment, params.segment_duration_s)) {
+      // Save audio segment to file
+      audio_manager.saveAudioSegment(audio_segment, segment_count);
 
-    std::ofstream temp_file;
-    temp_file.open("temp.txt", std::ios::trunc);
-    // first remove the file if it exists
+      // Process audio with Whisper
+      if (whisper_full(ctx, wparams, audio_segment.data(),
+                       audio_segment.size()) != 0) {
+        std::cerr << "Failed to recognize audio segment " << segment_count
+                  << std::endl;
+        segment_count++;
+        continue;
+      }
 
-    while (audio_manager.pollEvents()) {
-        std::vector<float> audio_context;
+      // Extract recognized text
+      std::string audio_text = "";
+      const int n_segments = whisper_full_n_segments(ctx);
+      for (int i = 0; i < n_segments; ++i) {
+        audio_text += whisper_full_get_segment_text(ctx, i);
+      }
 
-        audio_manager.wait(audio_context);
+      std::string clean_text = removeParens(audio_text);
 
-        if (!audio_context.empty()) {
-            if (whisper_full(ctx, wparams, audio_context.data(), audio_context.size()) != 0) {
-                std::cerr << "Failed to recognize audio\n";
-                continue;
-            }
+      // Display recognized text
+      std::cout << "\n=== Segment " << segment_count << " ===\n"
+                << clean_text << std::endl;
 
-            std::string audio_text = "";
-            const int n_segments = whisper_full_n_segments(ctx);
-            for (int i = 0; i < n_segments; ++i) {
-                audio_text += whisper_full_get_segment_text(ctx, i);
-            }
+      // Save text to file
+      audio_manager.saveTextOutput(clean_text, segment_count);
 
-            std::string clean_text = removeParens(audio_text);
+      // Optional: translate the text if enabled
+      if (!params.translate.empty()) {
+        translate_text(params.translate, clean_text, translated_text);
+        std::cout << "Translation: " << translated_text << std::endl;
+      }
 
-            /* TODO: flash the terminal every time is quite expensive */
-            std::cout << "\033[H\033[J" << std::flush;
-            std::cout << audio_text << std::flush;
-
-            /* TODO: currently the text is flashing out of no reason
-            translate_text(params.translate, clean_text, translated_text);
-            std::cout << translated_text << std::flush;
-            */
-
-            double time_now = getCurrentTimestamp();
-            if (!audio_text.empty()) {
-                char last_char = audio_text.back();
-                if ((time_now - time_start > 15.0) && (last_char == '.' || last_char == '?' || last_char == '!')) {
-                    temp_file << audio_text << "\n" << std::flush;
-
-                    translate_text(params.translate, audio_text, translated_text);
-
-                    temp_file << translated_text << "\n\n" << std::flush;
-                    audio_manager.resetBuffer();
-                    time_start = time_now;
-                }
-            }
-        }
+      segment_count++;
     }
-    audio_manager.stop();
+  }
 
-    whisper_print_timings(ctx);
-    whisper_free(ctx);
+  audio_manager.stop();
+  whisper_free(ctx);
 
-
-    return 0;
+  return 0;
 }
