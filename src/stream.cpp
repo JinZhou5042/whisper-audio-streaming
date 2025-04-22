@@ -12,6 +12,8 @@
 #include <cstdio>
 #include <ctime>
 #include <fstream>
+#include <functional>
+#include <future>
 #include <iomanip>
 #include <iostream>
 #include <mutex>
@@ -61,6 +63,19 @@ AudioManager *g_audioManager = nullptr;
     g_audioManager->cleanup();
   }
   exit(0);
+}
+
+void displayOutputText(const std::string &text_file_path) {
+  std::future<void> future = std::async(std::launch::async, [text_file_path]() {
+    std::string command =
+        "python display_text_output.py \"" + text_file_path + "\"";
+    std::cout << "Executing command: " << command << std::endl;
+    int result = system(command.c_str());
+    if (result != 0) {
+      std::cerr << "Error executing command: " << command << std::endl;
+    }
+  });
+  future.get();
 }
 
 int main(int argc, char **argv) {
@@ -119,7 +134,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  printf("[Start speaking - Processing in %d-second segments with no gaps]\n", params.segment_duration_s);
+  printf("[Start speaking - Processing in %d-second segments with no gaps]\n",
+         params.segment_duration_s);
 
   int segment_count = 0;
 
@@ -127,7 +143,8 @@ int main(int argc, char **argv) {
     std::vector<float> audio_segment;
 
     // Wait for a few seconds of audio to be collected
-    if (audio_manager.waitForAudioSegment(audio_segment, params.segment_duration_s)) {
+    if (audio_manager.waitForAudioSegment(audio_segment,
+                                          params.segment_duration_s)) {
       // Save audio segment to file
       audio_manager.saveAudioSegment(audio_segment, segment_count);
 
@@ -155,6 +172,10 @@ int main(int argc, char **argv) {
 
       // Save text to file
       audio_manager.saveTextOutput(clean_text, segment_count);
+
+      // Display output text
+      displayOutputText(audio_manager.log_directory + "/text_output_" +
+                        std::to_string(segment_count) + ".txt");
 
       // Optional: translate the text if enabled
       if (!params.translate.empty()) {
