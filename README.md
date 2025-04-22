@@ -26,7 +26,7 @@ cd third_party/whisper.cpp
 For Linux, download the GGML model:
 
 ```bash
-sh ./models/download-ggml-model.sh base.en
+sh ./models/download-ggml-model.sh tiny.en
 ```
 
 
@@ -37,8 +37,8 @@ pip install ane_transformers
 pip install openai-whisper
 pip install coremltools
 
-sh ./models/download-ggml-model.sh base.en
-sh ./models/generate-coreml-model.sh base.en
+sh ./models/download-ggml-model.sh tiny.en
+sh ./models/generate-coreml-model.sh tiny.en
 ```
 
 At this point, whisper.cpp is fully set up.

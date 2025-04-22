@@ -5,7 +5,7 @@
 ```bash
 git clone https://github.com/JinZhou5042/whisper-audio-streaming.git
 cd frame
-git submodule update --init --recursive
+git submodule update --init --recursive # TODO: do we need this?
 ```
 
 
