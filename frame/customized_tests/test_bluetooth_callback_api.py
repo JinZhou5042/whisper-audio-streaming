@@ -10,6 +10,8 @@ async def main():
         data_response_handler=lambda data: print(f"Data: {data.decode()}"),
     )
 
+    print("############################")
+
     await bluetooth.send_reset_signal()
     await bluetooth.send_lua("function ble_event(d)frame.bluetooth.send(d)end")
     await bluetooth.send_lua("frame.bluetooth.receive_callback(ble_event)")

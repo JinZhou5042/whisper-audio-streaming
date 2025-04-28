@@ -178,7 +178,7 @@ bool AudioManager::saveTextOutput(const std::string &text, int segment_count) {
     return false;
   }
 
-  text_file << text;
+  text_file << text << std::endl;
   text_file.close();
   std::cout << "Saved transcription to " << filename << std::endl;
   return true;

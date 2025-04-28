@@ -8,6 +8,7 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <cstring>
 #include <csignal>
 #include <cstdio>
 #include <ctime>
@@ -21,6 +22,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <sys/stat.h>
 
 static std::string removeParens(const std::string &input) {
   std::string result;
@@ -66,17 +68,55 @@ AudioManager *g_audioManager = nullptr;
 }
 
 void displayOutputText(const std::string &text_file_path) {
-  std::future<void> future = std::async(std::launch::async, [text_file_path]() {
-    std::string command =
-        "python display_text_output.py \"" + text_file_path + "\"";
-    std::cout << "Executing command: " << command << std::endl;
-    int result = system(command.c_str());
-    if (result != 0) {
-      std::cerr << "Error executing command: " << command << std::endl;
-    }
-  });
-  future.get();
+//  std::future<void> future = std::async(std::launch::async, [text_file_path]() {
+//    std::string command =
+//        "python ~/project/whisper-audio-streaming/src/display_text_output.py \"" + text_file_path + "\"";
+//    std::cout << "Executing command: " << command << std::endl;
+//    int result = system(command.c_str());
+//    if (result != 0) {
+//      std::cerr << "Error executing command: " << command << std::endl;
+//    }
+//  });
+//  future.get();
+  std::string command =
+      "python ~/project/whisper-audio-streaming/src/display_text_output.py \"" + text_file_path + "\"";
+  std::cout << "Executing command: " << command << std::endl;
+  int result = system(command.c_str());
+  if (result != 0) {
+    std::cerr << "Error executing command: " << command << std::endl;
+  }
 }
+
+const char *FIFO_PATH = "/tmp/whisper_fifo";
+
+void initFifo() {
+  remove(FIFO_PATH);
+  std::cout << "Creating FIFO named pipe at " << FIFO_PATH << std::endl;
+  if ((mkfifo(FIFO_PATH, 0666)) < 0) {
+    std::cerr << "Error: unable to create FIFO pipe" << std::endl;
+    exit(1);
+  } else {
+    std::cout << "FIFO pipe created" << std::endl;
+  }
+}
+
+void writeFifo(const std::string &fn) {
+  std::cout << "Writing \"" << fn << "\" to FIFO" << std::endl;
+
+  int fd;
+  fd = open(FIFO_PATH, O_WRONLY);
+  if (fd < 0) {
+    std::cerr << "Error: unable to open FIFO" << std::endl;
+    exit(1);
+  } else {
+    std::cout << "FIFO opened" << std::endl;
+    const char *fn_cstr = fn.c_str();
+    write(fd, fn_cstr, strlen(fn_cstr));
+    std::cout << "FIFO written" << std::endl;
+  }
+  close(fd);
+  std::cout << "FIFO closed" << std::endl;
+} 
 
 int main(int argc, char **argv) {
   std::ios::sync_with_stdio(false);
@@ -134,13 +174,16 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  printf("[Start speaking - Processing in %d-second segments with no gaps]\n",
+  initFifo();
+
+  printf("[Start speaking - Processing in %d-second segments with no gaps]\n\n",
          params.segment_duration_s);
 
   int segment_count = 0;
-
   while (audio_manager.pollEvents()) {
     std::vector<float> audio_segment;
+
+    std::cout << "\n===== Segment " << segment_count << " =====\n";
 
     // Wait for a few seconds of audio to be collected
     if (audio_manager.waitForAudioSegment(audio_segment,
@@ -167,15 +210,16 @@ int main(int argc, char **argv) {
       std::string clean_text = removeParens(audio_text);
 
       // Display recognized text
-      std::cout << "\n=== Segment " << segment_count << " ===\n"
-                << clean_text << std::endl;
+      std::cout << "TEXT:\n\"" << clean_text << "\"" << std::endl;
 
       // Save text to file
       audio_manager.saveTextOutput(clean_text, segment_count);
 
+      // Save text log file to FIFO
+      writeFifo(audio_manager.log_directory + "/text_output_" + std::to_string(segment_count) + ".txt");
+
       // Display output text
-      displayOutputText(audio_manager.log_directory + "/text_output_" +
-                        std::to_string(segment_count) + ".txt");
+      // displayOutputText(audio_manager.log_directory + "/text_output_" + std::to_string(segment_count) + ".txt");
 
       // Optional: translate the text if enabled
       if (!params.translate.empty()) {
